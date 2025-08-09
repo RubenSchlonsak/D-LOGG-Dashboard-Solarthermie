@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Solarthermie Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #171a21;
+      --text: #e6e8ee;
+      --muted: #9aa3b2;
+      --accent: #4cc9f0;
+      --warn: #fca311;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif}
+    header{padding:16px 20px;border-bottom:1px solid #232735;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    header h1{margin:0;font-size:20px;font-weight:600}
+    header .meta{font-size:13px;color:var(--muted)}
+    main{padding:16px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .card{background:var(--card);border:1px solid #232735;border-radius:14px;padding:14px}
+    .label{font-size:13px;color:var(--muted);margin-bottom:8px}
+    .value{font-size:28px;font-weight:700;letter-spacing:0.2px}
+    .deg{font-size:16px;color:var(--muted);margin-left:4px}
+    .ok{color:var(--accent)}
+    .bad{color:var(--warn)}
+    .toolbar{display:flex;gap:10px;align-items:center;margin-left:auto}
+    button{background:#202638;border:1px solid #2a3247;color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
+    button:hover{filter:brightness(1.1)}
+    .status{font-size:13px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Solarthermie Dashboard</h1>
+    <div class="meta" id="meta">lädt…</div>
+    <div class="toolbar">
+      <button id="refreshBtn">Jetzt aktualisieren</button>
+      <span class="status" id="status">Auto-Update: 30 s</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <script>
+    const grid = document.getElementById("grid");
+    const meta = document.getElementById("meta");
+    const status = document.getElementById("status");
+    const refreshBtn = document.getElementById("refreshBtn");
+
+    async function fetchData() {
+      try {
+        const res = await fetch("/api/current", {cache:"no-store"});
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "Fehler");
+        meta.textContent = `Port: ${data.port} · Geräte: ${data.devices_found} · Zeit: ${new Date(data.timestamp).toLocaleString()}`;
+        renderCards(data.values);
+      } catch (e) {
+        meta.textContent = `Fehler: ${e.message}`;
+      }
+    }
+
+    function renderCards(values) {
+      // Reihenfolge: feste Namen zuerst (falls vorhanden)
+      const order = [
+        "Temperature Sonnenkollektor",
+        "Puffer oben 1",
+        "Puffer oben 2",
+        "Puffer mitte",
+        "Puffer unten 2",
+        "Warmwasser",
+        "Kessel Vorlauf",
+        "Kessel Rücklauf",
+        "Holzkessel",
+      ];
+
+      const keys = Object.keys(values);
+      // eigene Reihenfolge + Rest
+      const sorted = [...order.filter(k => keys.includes(k)),
+                      ...keys.filter(k => !order.includes(k)).sort()];
+
+      grid.innerHTML = "";
+      for (const k of sorted) {
+        const v = values[k];
+        const cls = Number.isFinite(v) ? (v >= 0 ? "ok" : "bad") : "";
+        const val = Number.isFinite(v) ? v.toFixed(1) : "—";
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="label">${k}</div>
+          <div class="value ${cls}">${val}<span class="deg">°C</span></div>
+        `;
+        grid.appendChild(card);
+      }
+
+      if (sorted.length === 0) {
+        grid.innerHTML = `<div class="card"><div class="label">Keine Temperaturdaten</div><div class="value">—</div></div>`;
+      }
+    }
+
+    let timer = null;
+    function startAuto() {
+      clearInterval(timer);
+      timer = setInterval(fetchData, 30000); // 30 s
+      status.textContent = "Auto-Update: 30 s";
+    }
+
+    refreshBtn.addEventListener("click", fetchData);
+
+    // initial
+    fetchData();
+    startAuto();
+  </script>
+</body>
+</html>
