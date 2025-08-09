@@ -1,113 +1,259 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Solarthermie Dashboard</title>
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background-color: #1e293b; /* Dark Mode */
-        color: #f1f5f9;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    header {
-        padding: 1rem;
-        font-size: 1.5rem;
-        font-weight: bold;
-        text-align: center;
-        background-color: #0f172a;
-        width: 100%;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    }
-    #warmwasser {
-        font-size: 2.5rem;
-        font-weight: bold;
-        margin: 1rem 0;
-        color: #facc15;
-        text-align: center;
-    }
-    svg {
-        max-width: 95%;
-        height: auto;
-    }
-    text {
-        font-size: 14px;
-        fill: white;
-        font-weight: bold;
-    }
+  :root{
+    --bg:#0f172a;        /* canvas */
+    --panel:#111827;     /* cards */
+    --ink:#e5e7eb;       /* text */
+    --muted:#94a3b8;
+    --accent:#22d3ee;    /* cyan */
+    --ok:#22c55e;        /* grün */
+    --warm:#f59e0b;      /* orange */
+    --hot:#ef4444;       /* rot */
+    --cool:#3b82f6;      /* blau */
+    --ring:#334155;      /* gauge track */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+    background: radial-gradient(1200px 800px at 70% -10%, #1f2937 0%, var(--bg) 50%) no-repeat fixed;
+    color:var(--ink);
+    display:flex; flex-direction:column; align-items:center; gap:1rem;
+  }
+  header{
+    width:100%; padding:1rem 1.25rem; background:#0b1220aa; backdrop-filter: blur(6px);
+    position:sticky; top:0; z-index:5; box-shadow: 0 2px 8px rgba(0,0,0,.45);
+    display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+  }
+  header h1{margin:0; font-size:1.15rem; letter-spacing:.3px; display:flex; align-items:center; gap:.6rem}
+  header h1 .sun{display:inline-flex; width:28px; height:28px; border-radius:50%; background: radial-gradient(circle at 40% 40%, #fde047, #f59e0b);}
+  #lastUpdate{font-size:.9rem; color:var(--muted)}
+  main{width:min(1100px, 96vw); display:grid; grid-template-columns: 1fr; gap:1rem; padding: .5rem 1rem 2rem}
+  @media (min-width: 980px){ main{grid-template-columns: 360px 1fr; align-items:start} }
+
+  /* Warmwasser Card */
+  .card{background: linear-gradient(180deg, #101827, #0b1220); border:1px solid #1f2937; border-radius:16px; padding:1rem; box-shadow: 0 10px 30px rgba(0,0,0,.35)}
+  .card h2{margin:.2rem 0 1rem; font-size:1.05rem; color:var(--muted); font-weight:600}
+  .gauge-wrap{display:grid; place-items:center; padding: .5rem 0 1rem}
+  .gauge{
+    width:min(300px, 70vw); height:min(300px, 70vw);
+    display:block;
+  }
+  .gauge text{font-weight:700; fill:var(--ink)}
+  .big-value{font-size:26px}
+  .sub{font-size:12px; fill:var(--muted)}
+  .pill{
+    margin:.75rem auto 0; display:inline-flex; align-items:center; gap:.6rem; padding:.4rem .7rem;
+    background:#0b1220; border:1px solid #1f2937; border-radius:999px; color:var(--muted); font-size:.9rem
+  }
+  .dot{width:10px; height:10px; border-radius:50%}
+  .legend{display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; margin-top:.5rem; color:var(--muted); font-size:.85rem}
+  .legend span{display:inline-flex; align-items:center; gap:.4rem}
+
+  /* System Diagram */
+  .diagram.card{padding:1rem 1rem 1.25rem}
+  .diagram svg{width:100%; height:auto}
+  .label{font-size:14px; font-weight:700; fill:var(--ink); paint-order: stroke; stroke:rgba(0,0,0,.35); stroke-width:3px}
+  .chip{font-size:12px; fill:var(--muted)}
+  .box{fill:#1f2937; stroke:#374151; stroke-width:2}
+  .pipe{fill:#374151}
+  .tank{fill:#334155; stroke:#475569; stroke-width:2}
+
+  .footer{margin-top:.25rem; font-size:.85rem; color:var(--muted); text-align:center}
+
+  /* smooth color transitions on numbers */
+  [data-dyn]{transition: fill .25s ease,color .25s ease}
 </style>
 </head>
 <body>
 
-<header>🌞 Solarthermie-Anlage</header>
-<div id="warmwasser">Warmwasser: -- °C</div>
+<header>
+  <h1><span class="sun"></span>Solarthermie-Anlage</h1>
+  <div id="lastUpdate">Zuletzt aktualisiert: –</div>
+</header>
 
-<svg viewBox="0 0 800 500">
-    <!-- Sonne -->
-    <circle cx="100" cy="80" r="40" fill="#facc15"/>
-    <text x="70" y="140" id="Temperature Sonnenkollektor">Sonnenkollektor: -- °C</text>
+<main>
+  <!-- Warmwasser Fokus -->
+  <section class="card">
+    <h2>Warmwasser</h2>
+    <div class="gauge-wrap">
+      <svg class="gauge" viewBox="0 0 200 200" aria-labelledby="gaugeTitle">
+        <title id="gaugeTitle">Warmwasser Temperatur</title>
+        <defs>
+          <linearGradient id="gradTemp" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stop-color="var(--cool)"/>
+            <stop offset="50%" stop-color="var(--warm)"/>
+            <stop offset="100%" stop-color="var(--hot)"/>
+          </linearGradient>
+        </defs>
+        <!-- track -->
+        <circle cx="100" cy="100" r="78" stroke="var(--ring)" stroke-width="16" fill="none" />
+        <!-- value arc -->
+        <circle id="ww-arc" cx="100" cy="100" r="78" stroke="url(#gradTemp)" stroke-width="16" fill="none"
+                stroke-linecap="round" transform="rotate(-90 100 100)"
+                stroke-dasharray="0 1000"/>
+        <!-- text -->
+        <text x="100" y="95" text-anchor="middle" class="big-value" id="Warmwasser_value">-- °C</text>
+        <text x="100" y="115" text-anchor="middle" class="sub">Ziel 60 °C</text>
+      </svg>
 
-    <!-- Leitung -->
-    <rect x="140" y="75" width="200" height="10" fill="#f97316"/>
+      <div class="pill">
+        <span class="dot" id="Warmwasser_dot" style="background:var(--ring)"></span>
+        <span id="Warmwasser_state">Warte auf Daten …</span>
+      </div>
 
-    <!-- Pufferspeicher -->
-    <rect x="350" y="50" width="80" height="200" fill="#64748b"/>
-    <text x="360" y="280" id="Puffer oben 1">Puffer oben 1: -- °C</text>
-    <text x="360" y="300" id="Puffer oben 2">Puffer oben 2: -- °C</text>
-    <text x="360" y="320" id="Puffer mitte">Puffer mitte: -- °C</text>
-    <text x="360" y="340" id="Puffer unten 2">Puffer unten 2: -- °C</text>
-    <text x="360" y="360" id="T16">T16: -- °C</text>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--cool)"></span><b>&lt; 20 °C</b> kühl</span>
+        <span><span class="dot" style="background:var(--ok)"></span><b>20–39 °C</b> normal</span>
+        <span><span class="dot" style="background:var(--warm)"></span><b>40–59 °C</b> warm</span>
+        <span><span class="dot" style="background:var(--hot)"></span><b>≥ 60 °C</b> heiß</span>
+      </div>
+    </div>
+  </section>
 
-    <!-- Warmwasser -->
-    <rect x="500" y="80" width="60" height="120" fill="#0ea5e9"/>
-    <text x="500" y="230" id="Warmwasser">Warmwasser: -- °C</text>
+  <!-- Systemdiagramm -->
+  <section class="diagram card" aria-label="Systemübersicht">
+    <svg viewBox="0 0 1000 520" role="img">
+      <!-- Sonne / Kollektor -->
+      <circle cx="90" cy="80" r="42" fill="url(#sunGrad)"></circle>
+      <defs>
+        <radialGradient id="sunGrad" cx="35%" cy="35%">
+          <stop offset="0%" stop-color="#fde047"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </radialGradient>
+      </defs>
+      <text x="30" y="140" class="chip">Sonnenkollektor</text>
+      <text x="30" y="160" class="label" id="Temperature Sonnenkollektor" data-dyn>Sonnenkollektor: -- °C</text>
 
-    <!-- Kessel -->
-    <rect x="650" y="150" width="80" height="100" fill="#ef4444"/>
-    <text x="650" y="270" id="Kessel Vorlauf">Kessel Vorlauf: -- °C</text>
-    <text x="650" y="290" id="Kessel Rücklauf">Kessel Rücklauf: -- °C</text>
-    <text x="650" y="310" id="Holzkessel">Holzkessel: -- °C</text>
-</svg>
+      <!-- Leitung vom Kollektor -->
+      <rect x="140" y="76" width="250" height="12" class="pipe"/>
+
+      <!-- Pufferspeicher (vertikaler Tank) -->
+      <rect x="420" y="60" width="110" height="250" rx="12" class="tank"/>
+      <!-- Tankmarken -->
+      <line x1="430" y1="100" x2="520" y2="100" stroke="#475569" stroke-width="1" />
+      <line x1="430" y1="160" x2="520" y2="160" stroke="#475569" stroke-width="1" />
+      <line x1="430" y1="220" x2="520" y2="220" stroke="#475569" stroke-width="1" />
+
+      <text x="545" y="98" class="chip">Puffer oben 1</text>
+      <text x="545" y="118" class="label" id="Puffer oben 1" data-dyn>Puffer oben 1: -- °C</text>
+
+      <text x="545" y="158" class="chip">Puffer oben 2</text>
+      <text x="545" y="178" class="label" id="Puffer oben 2" data-dyn>Puffer oben 2: -- °C</text>
+
+      <text x="545" y="218" class="chip">Puffer mitte</text>
+      <text x="545" y="238" class="label" id="Puffer mitte" data-dyn>Puffer mitte: -- °C</text>
+
+      <text x="545" y="278" class="chip">Puffer unten 2</text>
+      <text x="545" y="298" class="label" id="Puffer unten 2" data-dyn>Puffer unten 2: -- °C</text>
+
+      <!-- Warmwasser-Boiler (rechts) -->
+      <rect x="730" y="90" width="90" height="160" rx="10" class="box"/>
+      <text x="730" y="270" class="chip">Warmwasser</text>
+      <text x="730" y="290" class="label" id="Warmwasser" data-dyn>Warmwasser: -- °C</text>
+
+      <!-- Kessel -->
+      <rect x="770" y="320" width="120" height="110" rx="10" class="box"/>
+      <text x="770" y="305" class="chip">Kessel</text>
+      <text x="770" y="350" class="label" id="Kessel Vorlauf" data-dyn>Vorlauf: -- °C</text>
+      <text x="770" y="375" class="label" id="Kessel Rücklauf" data-dyn>Rücklauf: -- °C</text>
+      <text x="770" y="400" class="label" id="Holzkessel" data-dyn>Holzkessel: -- °C</text>
+
+      <!-- einfache Rohrführung -->
+      <rect x="530" y="170" width="200" height="10" class="pipe"/>
+      <rect x="680" y="180" width="10" height="160" class="pipe"/>
+      <rect x="690" y="330" width="80" height="10" class="pipe"/>
+    </svg>
+  </section>
+</main>
+
+<div class="footer">Aktualisierung alle 30 s • Läuft im lokalen Netz</div>
 
 <script>
-async function updateData() {
-    try {
-        const res = await fetch('/api/current');
-        const data = await res.json();
-        if (!data.ok) return;
+  // Farbwahl abhängig von Temperatur
+  function tempColor(v){
+    if (v == null || isNaN(v)) return "var(--muted)";
+    if (v >= 60) return "var(--hot)";
+    if (v >= 40) return "var(--warm)";
+    if (v >= 20) return "var(--ok)";
+    return "var(--cool)";
+  }
+  // Gauge aktualisieren (0..100% von 0..80°C, hard cap 80)
+  function updateGauge(value){
+    const arc = document.getElementById("ww-arc");
+    const max = 80; // Referenz
+    const v = Math.max(0, Math.min(value ?? 0, max));
+    const circumference = 2 * Math.PI * 78;
+    const filled = (v / max) * circumference;
+    arc.setAttribute("stroke-dasharray", `${filled} ${circumference - filled}`);
+    document.getElementById("Warmwasser_value").textContent =
+      (value==null || isNaN(value)) ? "-- °C" : `${value.toFixed(1)} °C`;
+    const c = tempColor(value);
+    document.getElementById("Warmwasser_dot").style.background = c;
+    document.getElementById("Warmwasser_state").textContent =
+      (value==null || isNaN(value)) ? "Warte auf Daten …" :
+      (value>=60 ? "heiß" : value>=40 ? "warm" : value>=20 ? "ok" : "kühl");
+  }
 
-        const vals = data.values;
-
-        for (const [label, value] of Object.entries(vals)) {
-            const el = document.getElementById(label);
-            if (el) {
-                el.textContent = `${label}: ${value.toFixed(1)} °C`;
-                // Farbe abhängig von Temperatur
-                let color = "#3b82f6"; // blau
-                if (value >= 20) color = "#22c55e"; // grün
-                if (value >= 40) color = "#f97316"; // orange
-                if (value >= 60) color = "#ef4444"; // rot
-                el.setAttribute("fill", color);
-            }
-        }
-
-        if (vals["Warmwasser"] !== undefined) {
-            document.getElementById("warmwasser").textContent =
-                `Warmwasser: ${vals["Warmwasser"].toFixed(1)} °C`;
-        }
-
-    } catch (err) {
-        console.error("Fehler beim Abrufen:", err);
+  function paintLabel(id, val){
+    const el = document.getElementById(id);
+    if (!el) return;
+    const label = id; // id == API-Key/Anzeigename
+    if (val==null || isNaN(val)){
+      el.textContent = `${label}: -- °C`;
+      el.style.fill = "var(--muted)";
+      el.style.color = "var(--muted)";
+      return;
     }
-}
+    el.textContent = `${label}: ${val.toFixed(1)} °C`;
+    const c = tempColor(val);
+    el.style.fill = c;
+    el.style.color = c;
+  }
 
-updateData();
-setInterval(updateData, 30000);
+  async function updateData(){
+    try{
+      const res = await fetch('/api/current', { cache: 'no-store' });
+      const data = await res.json();
+      if (!data || data.ok !== true || !data.values){
+        throw new Error("Ungültige API-Antwort");
+      }
+      const vals = data.values;
+
+      // Warmwasser prominent
+      updateGauge(vals["Warmwasser"]);
+
+      // Alle bekannten Labels im Diagramm einfärben
+      const ids = [
+        "Temperature Sonnenkollektor",
+        "Puffer oben 1",
+        "Puffer oben 2",
+        "Puffer mitte",        // <- T16 laut Vorgabe
+        "Puffer unten 2",
+        "Warmwasser",
+        "Kessel Vorlauf",
+        "Kessel Rücklauf",
+        "Holzkessel"
+      ];
+      ids.forEach(id => paintLabel(id, vals[id]));
+
+      // Zeitstempel
+      const ts = new Date();
+      document.getElementById("lastUpdate").textContent =
+        `Zuletzt aktualisiert: ${ts.toLocaleDateString()} ${ts.toLocaleTimeString()}`;
+    }catch(err){
+      console.error(err);
+      document.getElementById("lastUpdate").textContent = "Fehler beim Abrufen – retry …";
+    }
+  }
+
+  updateData();
+  setInterval(updateData, 30_000);
 </script>
-
 </body>
 </html>
