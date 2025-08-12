@@ -48,8 +48,15 @@ else
     read -p "USB-Port manuell eingeben (z.B. /dev/ttyUSB0): " USB_PORT
 fi
 
-# 4. Projektverzeichnis erstellen (falls nicht vorhanden)
-PROJECT_DIR="/home/pi/solarthermie-dashboard"
+# 4. Projektverzeichnis bestimmen und erstellen
+CURRENT_USER=$(whoami)
+HOME_DIR=$(eval echo ~$CURRENT_USER)
+PROJECT_DIR="$HOME_DIR/solarthermie-dashboard"
+
+print_status "Verwende User: $CURRENT_USER"
+print_status "Home-Verzeichnis: $HOME_DIR"
+print_status "Projekt-Verzeichnis: $PROJECT_DIR"
+
 if [ ! -d "$PROJECT_DIR" ]; then
     print_status "Erstelle Projektverzeichnis $PROJECT_DIR"
     mkdir -p "$PROJECT_DIR"
@@ -71,8 +78,8 @@ print_status "Installiere Python-Pakete..."
 pip3 install flask pyserial
 
 # 6. User zu dialout-Gruppe hinzufügen
-print_status "Füge User 'pi' zur dialout-Gruppe hinzu..."
-sudo usermod -a -G dialout pi
+print_status "Füge User '$CURRENT_USER' zur dialout-Gruppe hinzu..."
+sudo usermod -a -G dialout $CURRENT_USER
 
 # 7. Systemd Service erstellen
 print_status "Erstelle systemd Service..."
@@ -85,7 +92,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-User=pi
+User=$CURRENT_USER
 WorkingDirectory=$PROJECT_DIR
 Environment=DLOGG_PORT=$USB_PORT
 ExecStart=/usr/bin/python3 $PROJECT_DIR/app.py --host 0.0.0.0 --bind 5000
