@@ -120,7 +120,7 @@
       <line x1="540" y1="300" x2="560" y2="300" class="lead"/>
 
       <!-- Kessel (rechts unten) -->
-      <rect x="790" y="320" width="180" height="130" rx="10" class="box"/>
+      <rect x="780" y="310" width="240" height="160" rx="12" class="box"/>
 
       <!-- Rohrführung vom Tank zum Kessel (unten, keine Überlappung) -->
       <rect x="540" y="300" width="220" height="10" class="pipe"/>
@@ -131,9 +131,9 @@
 
       <!-- Sonnenkollektor-Wert: zentriert unter der Sonne, Box per Autosize -->
       <g id="g-Sonnenkollektor">
-        <rect class="labelbox" data-for="Temperature Sonnenkollektor"
+        <rect class="labelbox" data-for="Temperatur Sonnenkollektor"
               x="-9999" y="-9999" width="10" height="28"></rect>
-        <text class="label" id="Temperature Sonnenkollektor"
+        <text class="label" id="Temperatur Sonnenkollektor"
               text-anchor="middle" data-dyn>
           Sonnenkollektor: -- °C
         </text>
@@ -162,10 +162,11 @@
 
       <!-- Kesselwerte in Box im Kessel -->
       <g id="g-Kessel">
-        <rect class="labelbox" x="798" y="336" height="96" width="164"></rect>
-        <text class="label" id="Kessel Vorlauf"  x="808" y="358" data-dyn>Vorlauf: -- °C</text>
-        <text class="label" id="Kessel Rücklauf" x="808" y="386" data-dyn>Rücklauf: -- °C</text>
-        <text class="label" id="Holzkessel"      x="808" y="414" data-dyn>Holzkessel: -- °C</text>
+        <!-- mehr Fläche + etwas weiter links, damit Rand passt -->
+        <rect class="labelbox" x="792" y="320" width="220" height="128"></rect>
+        <text class="label" id="Kessel Vorlauf"  x="804" y="350">Vorlauf: -- °C</text>
+        <text class="label" id="Kessel Rücklauf" x="804" y="380">Rücklauf: -- °C</text>
+        <text class="label" id="Holzkessel"      x="804" y="410">Holzkessel: -- °C</text>
       </g>
     </svg>
   </section>
@@ -204,7 +205,7 @@
   // Kollektor-Label exakt unter der Sonne platzieren
   function placeCollectorLabel(){
     const sun  = document.getElementById('sun');
-    const text = document.getElementById('Temperature Sonnenkollektor');
+    const text = document.getElementById('Temperatur Sonnenkollektor');
     if(!sun || !text) return;
     const cx = parseFloat(sun.getAttribute('cx'));
     const cy = parseFloat(sun.getAttribute('cy'));
@@ -212,7 +213,7 @@
     // zentriert unter der Sonne, mit Abstand
     text.setAttribute('x', cx);
     text.setAttribute('y', cy + r + 24);
-    autosizeBox('Temperature Sonnenkollektor');
+    autosizeBox('Temperatur Sonnenkollektor');
   }
 
   // Gauge aktualisieren (0..100% von 0..80°C)
@@ -241,14 +242,14 @@
       el.style.fill = "var(--muted)";
       el.style.color = "var(--muted)";
       autosizeBox(id);
-      if (id === "Temperature Sonnenkollektor") placeCollectorLabel();
+      if (id === "Temperatur Sonnenkollektor") placeCollectorLabel();
       return;
     }
     el.textContent = `${label}: ${fmt(val)} °C`;
     const c = tempColor(val);
     el.style.fill = c; el.style.color = c;
     autosizeBox(id);
-    if (id === "Temperature Sonnenkollektor") placeCollectorLabel();
+    if (id === "Temperatur Sonnenkollektor") placeCollectorLabel();
   }
 
   async function updateData(){
@@ -263,7 +264,7 @@
 
       // Diagramm-Werte (ohne Warmwasser-Boiler)
       [
-        "Temperature Sonnenkollektor",
+        "Temperatur Sonnenkollektor",
         "Puffer oben 1",
         "Puffer oben 2",
         "Puffer mitte",
