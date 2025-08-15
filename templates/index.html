@@ -39,18 +39,15 @@
   .diagram.card{padding:1rem 1rem 1.25rem}
   .diagram svg{width:100%; height:auto}
 
-  /* Hintere Ebenen */
+  /* hintere Ebenen */
   .tank{fill:#334155; stroke:#475569; stroke-width:2}
   .box{fill:#1f2937; stroke:#374151; stroke-width:2}
   .pipe{fill:#3a4a63}
   .lead{stroke:#475569; stroke-width:2; fill:none}
 
-  /* Vordergrund: Wert-Boxen */
+  /* vordere Ebenen (Wertboxen) */
   .labelbox{fill:#0b1220e6; stroke:#475569; stroke-width:1.1; rx:6}
-  .label{
-    font-size:16px; font-weight:800; fill:var(--ink);
-    paint-order:stroke; stroke:#000000c0; stroke-width:3.5px;
-  }
+  .label{font-size:16px; font-weight:800; fill:var(--ink); paint-order:stroke; stroke:#000000c0; stroke-width:3.5px}
 
   @media (max-width:720px){ .label{font-size:15px; stroke-width:3px} }
 
@@ -92,7 +89,7 @@
     </div>
   </section>
 
-  <!-- Systemdiagramm (ohne Warmwasser-Boiler) -->
+  <!-- Systemdiagramm -->
   <section class="diagram card" aria-label="Systemübersicht">
     <svg viewBox="0 0 1060 520" role="img">
       <defs>
@@ -102,10 +99,9 @@
       </defs>
 
       <!-- ===== BACK LAYER ===== -->
-      <!-- Sonne/Kollektor -->
-      <circle id="sun" cx="110" cy="100" r="46" fill="url(#sunGrad)" />
-      <!-- Rohr zum Tank -->
-      <rect x="160" y="94" width="260" height="12" class="pipe"/>
+      <!-- Sonne/ Rohr (um 40 px nach rechts verschoben) -->
+      <circle id="sun" cx="150" cy="100" r="46" fill="url(#sunGrad)" />
+      <rect x="200" y="94" width="220" height="12" class="pipe"/><!-- endet bei x=420 -->
 
       <!-- Pufferspeicher -->
       <rect x="420" y="70" width="120" height="280" rx="14" class="tank"/>
@@ -113,23 +109,20 @@
       <line x1="430" y1="180" x2="530" y2="180" stroke="#4b5d7a" stroke-width="1"/>
       <line x1="430" y1="240" x2="530" y2="240" stroke="#4b5d7a" stroke-width="1"/>
 
-      <!-- kurze Leader-Linien direkt vor die Wertboxen -->
+      <!-- kurze Leader-Linien -->
       <line x1="540" y1="110" x2="560" y2="110" class="lead"/>
       <line x1="540" y1="180" x2="560" y2="180" class="lead"/>
       <line x1="540" y1="240" x2="560" y2="240" class="lead"/>
       <line x1="540" y1="300" x2="560" y2="300" class="lead"/>
 
-      <!-- Kessel (rechts unten) -->
+      <!-- Kessel -->
       <rect x="780" y="310" width="240" height="160" rx="12" class="box"/>
-
-      <!-- Rohrführung vom Tank zum Kessel (unten, keine Überlappung) -->
       <rect x="540" y="300" width="220" height="10" class="pipe"/>
       <rect x="760" y="300" width="10"  height="50" class="pipe"/>
       <rect x="770" y="340" width="20"  height="10" class="pipe"/>
 
       <!-- ===== FRONT LAYER: Wertboxen ===== -->
-
-      <!-- Sonnenkollektor-Wert: zentriert unter der Sonne, Box per Autosize -->
+      <!-- Kollektor: Label zentriert + autosize -->
       <g id="g-Sonnenkollektor">
         <rect class="labelbox" data-for="Temperatur Sonnenkollektor"
               x="-9999" y="-9999" width="10" height="28"></rect>
@@ -139,34 +132,30 @@
         </text>
       </g>
 
-      <!-- Puffer-Werte dicht am Tank -->
+      <!-- Puffer-Werte -->
       <g id="g-Po1">
         <rect class="labelbox" data-for="Puffer oben 1" x="560" y="96" height="28" width="240"></rect>
         <text  class="label"    id="Puffer oben 1" x="572" y="115" data-dyn>Puffer oben 1: -- °C</text>
       </g>
-
       <g id="g-Po2">
         <rect class="labelbox" data-for="Puffer oben 2" x="560" y="166" height="28" width="240"></rect>
         <text  class="label"    id="Puffer oben 2" x="572" y="185" data-dyn>Puffer oben 2: -- °C</text>
       </g>
-
       <g id="g-Pm">
         <rect class="labelbox" data-for="Puffer mitte" x="560" y="226" height="28" width="240"></rect>
         <text  class="label"    id="Puffer mitte" x="572" y="245" data-dyn>Puffer mitte: -- °C</text>
       </g>
-
       <g id="g-Pu2">
         <rect class="labelbox" data-for="Puffer unten 2" x="560" y="286" height="28" width="240"></rect>
         <text  class="label"    id="Puffer unten 2" x="572" y="305" data-dyn>Puffer unten 2: -- °C</text>
       </g>
 
-      <!-- Kesselwerte in Box im Kessel -->
+      <!-- Kesselwerte -->
       <g id="g-Kessel">
-        <!-- mehr Fläche + etwas weiter links, damit Rand passt -->
         <rect class="labelbox" x="792" y="320" width="220" height="128"></rect>
-        <text class="label" id="Kessel Vorlauf"  x="804" y="350">Vorlauf: -- °C</text>
-        <text class="label" id="Kessel Rücklauf" x="804" y="380">Rücklauf: -- °C</text>
-        <text class="label" id="Holzkessel"      x="804" y="410">Holzkessel: -- °C</text>
+        <text class="label" id="Kessel Vorlauf"  x="804" y="350" data-dyn>Vorlauf: -- °C</text>
+        <text class="label" id="Kessel Rücklauf" x="804" y="380" data-dyn>Rücklauf: -- °C</text>
+        <text class="label" id="Holzkessel"      x="804" y="410" data-dyn>Holzkessel: -- °C</text>
       </g>
     </svg>
   </section>
@@ -175,7 +164,7 @@
 <div class="footer">Aktualisierung alle 30 s • Läuft im lokalen Netz</div>
 
 <script>
-  // Farbwahl abhängig von Temperatur
+  // Farben je Temperatur
   function tempColor(v){
     if (v == null || isNaN(v)) return "var(--muted)";
     if (v >= 60) return "var(--hot)";
@@ -183,13 +172,12 @@
     if (v >= 20) return "var(--ok)";
     return "var(--cool)";
   }
-
-  // deutsche Formatierung, erlaubt z. B. 100,3 °C
+  // deutsche Formatierung (z.B. 100,3)
   function fmt(v){
     return Number(v).toLocaleString('de-DE', {minimumFractionDigits:1, maximumFractionDigits:1});
   }
 
-  // Label-Box an Textbreite anpassen (auch bei 100,3 °C u.ä.)
+  // Label-Box an Textbreite anpassen
   function autosizeBox(textId){
     const t = document.getElementById(textId);
     const r = document.querySelector(`rect[data-for="${textId}"]`);
@@ -197,12 +185,12 @@
     const bb = t.getBBox();
     const padX = 10, padY = 6;
     r.setAttribute('x', bb.x - padX);
-    r.setAttribute('y', bb.y - (padY - 2));  // optische Zentrierung zur Baseline
-    r.setAttribute('width', bb.width + padX*2);
+    r.setAttribute('y', bb.y - (padY - 2));
+    r.setAttribute('width',  bb.width  + padX*2);
     r.setAttribute('height', bb.height + padY*2);
   }
 
-  // Kollektor-Label exakt unter der Sonne platzieren
+  // Kollektor-Label exakt unter der Sonne
   function placeCollectorLabel(){
     const sun  = document.getElementById('sun');
     const text = document.getElementById('Temperatur Sonnenkollektor');
@@ -210,13 +198,12 @@
     const cx = parseFloat(sun.getAttribute('cx'));
     const cy = parseFloat(sun.getAttribute('cy'));
     const r  = parseFloat(sun.getAttribute('r'));
-    // zentriert unter der Sonne, mit Abstand
     text.setAttribute('x', cx);
     text.setAttribute('y', cy + r + 24);
     autosizeBox('Temperatur Sonnenkollektor');
   }
 
-  // Gauge aktualisieren (0..100% von 0..80°C)
+  // Gauge
   function updateGauge(value){
     const arc = document.getElementById("ww-arc");
     const max = 80;
@@ -232,6 +219,12 @@
       (value==null || isNaN(value)) ? "Warte auf Daten …" :
       (value>=60 ? "heiß" : value>=40 ? "warm" : value>=20 ? "ok" : "kühl");
   }
+
+  // helpers
+  const pick = (obj, ...names) => {
+    for(const n of names){ if (n in obj && obj[n] != null) return obj[n]; }
+    return null;
+  };
 
   function paintLabel(id, val){
     const el = document.getElementById(id);
@@ -259,35 +252,30 @@
       if (!data || data.ok !== true || !data.values) throw new Error("Ungültige API-Antwort");
       const vals = data.values;
 
-      // Gauge (Warmwasser bleibt als Karte)
+      // Warmwasser-Gauge
       updateGauge(vals["Warmwasser"]);
 
-      // Diagramm-Werte (ohne Warmwasser-Boiler)
-      [
-        "Temperatur Sonnenkollektor",
-        "Puffer oben 1",
-        "Puffer oben 2",
-        "Puffer mitte",
-        "Puffer unten 2",
-        "Kessel Vorlauf",
-        "Kessel Rücklauf",
-        "Holzkessel"
-      ].forEach(id => paintLabel(id, vals[id]));
+      // Sonnenkollektor: akzeptiere beide Keys (de/en)
+      const sunVal = pick(vals, "Temperatur Sonnenkollektor", "Temperature Sonnenkollektor", "Sonnenkollektor");
+      paintLabel("Temperatur Sonnenkollektor", sunVal);
+
+      // Restliche Labels
+      ["Puffer oben 1","Puffer oben 2","Puffer mitte","Puffer unten 2",
+       "Kessel Vorlauf","Kessel Rücklauf","Holzkessel"]
+       .forEach(id => paintLabel(id, vals[id]));
 
       // Zeitstempel
       const ts = new Date();
       document.getElementById("lastUpdate").textContent =
         `Zuletzt aktualisiert: ${ts.toLocaleDateString('de-DE')} ${ts.toLocaleTimeString('de-DE')}`;
 
-      // sicherstellen, dass die Kollektor-Box korrekt sitzt (auch nach Datenupdate)
-      placeCollectorLabel();
+      placeCollectorLabel(); // falls Resize/Textbreite sich ändert
     }catch(err){
       console.error(err);
       document.getElementById("lastUpdate").textContent = "Fehler beim Abrufen – retry …";
     }
   }
 
-  // Initial
   updateData();
   placeCollectorLabel();
   setInterval(updateData, 30_000);
