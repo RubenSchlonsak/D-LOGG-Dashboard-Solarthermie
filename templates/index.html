@@ -3,283 +3,448 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#070b16" />
 <title>Solarthermie Dashboard</title>
 <style>
   :root{
-    --bg:#0f172a; --panel:#111827; --ink:#e5e7eb; --muted:#94a3b8;
-    --ok:#22c55e; --warm:#f59e0b; --hot:#ef4444; --cool:#3b82f6; --ring:#334155;
+    --bg:#070b16; --bg2:#0c1322;
+    --panel:rgba(18,26,43,.72); --panel-brd:rgba(148,163,184,.14);
+    --ink:#eef2f9; --muted:#8b9bb4; --faint:#5b6b85;
+    --cool:#38bdf8; --ok:#34d399; --warm:#fbbf24; --hot:#fb5d5d;
+    --sun1:#ffe168; --sun2:#ff9d2f;
+    --ring:rgba(148,163,184,.16);
+    --accent:#60a5fa;
+    --shadow:0 24px 60px -20px rgba(0,0,0,.7);
+    font-synthesis:none;
   }
-  *{box-sizing:border-box} html,body{height:100%}
+  *{box-sizing:border-box}
+  html,body{height:100%}
   body{
-    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial;
-    background: radial-gradient(1200px 800px at 70% -10%, #1f2937 0%, var(--bg) 50%) no-repeat fixed;
-    color:var(--ink); display:flex; flex-direction:column; align-items:center; gap:1rem;
+    margin:0; color:var(--ink);
+    font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; letter-spacing:.1px;
+    background:
+      radial-gradient(1100px 720px at 78% -12%, #1a2740 0%, rgba(12,19,34,0) 55%),
+      radial-gradient(900px 600px at 10% 110%, #15233b 0%, rgba(7,11,22,0) 50%),
+      linear-gradient(180deg,var(--bg2),var(--bg) 60%);
+    background-attachment:fixed;
+    min-height:100%;
   }
-  header{width:100%; padding:1rem 1.25rem; background:#0b1220cc; backdrop-filter:blur(6px);
-    position:sticky; top:0; z-index:5; box-shadow:0 2px 8px rgba(0,0,0,.45);
-    display:flex; align-items:center; justify-content:space-between; gap:.75rem}
-  header h1{margin:0; font-size:1.15rem; letter-spacing:.3px; display:flex; align-items:center; gap:.6rem}
-  header h1 .sun{width:28px; height:28px; border-radius:50%; background:radial-gradient(circle at 40% 40%, #fde047, #f59e0b)}
-  #lastUpdate{font-size:.9rem; color:var(--muted)}
-  main{width:min(1200px,96vw); display:grid; grid-template-columns:1fr; gap:1rem; padding:.5rem 1rem 2rem}
-  @media (min-width:980px){main{grid-template-columns:380px 1fr; align-items:start}}
 
-  .card{background:linear-gradient(180deg,#101827,#0b1220); border:1px solid #1f2937; border-radius:16px; padding:1rem; box-shadow:0 12px 32px rgba(0,0,0,.38)}
-  .card h2{margin:.2rem 0 1rem; font-size:1.05rem; color:var(--muted); font-weight:600}
+  /* ---------- Header ---------- */
+  header{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+    padding:.95rem clamp(1rem,3vw,2rem);
+    background:linear-gradient(180deg,rgba(7,11,22,.88),rgba(7,11,22,.55));
+    backdrop-filter:blur(14px) saturate(140%);
+    border-bottom:1px solid var(--panel-brd);
+  }
+  .brand{display:flex; align-items:center; gap:.8rem; font-weight:700; font-size:1.12rem}
+  .brand .mark{
+    width:34px; height:34px; border-radius:11px; position:relative; flex:none;
+    background:radial-gradient(circle at 38% 34%, var(--sun1), var(--sun2));
+    box-shadow:0 0 0 1px rgba(255,255,255,.12) inset, 0 8px 22px -6px rgba(255,157,47,.7);
+  }
+  .brand .mark::after{
+    content:""; position:absolute; inset:-6px; border-radius:14px;
+    background:radial-gradient(circle, rgba(255,157,47,.45), transparent 68%);
+    animation:breathe 3.6s ease-in-out infinite;
+  }
+  .brand small{display:block; font-weight:500; font-size:.72rem; color:var(--muted); letter-spacing:.4px}
+  .status{display:flex; align-items:center; gap:1.1rem; flex-wrap:wrap}
+  .conn{display:inline-flex; align-items:center; gap:.5rem; font-size:.85rem; color:var(--muted);
+    padding:.4rem .75rem; border:1px solid var(--panel-brd); border-radius:999px; background:var(--panel)}
+  .conn .led{width:9px; height:9px; border-radius:50%; background:var(--faint); transition:background .3s}
+  .conn.live .led{background:var(--ok); box-shadow:0 0 0 0 rgba(52,211,153,.6); animation:pulse 2s infinite}
+  .conn.dead .led{background:var(--hot)}
+  #lastUpdate{font-size:.82rem; color:var(--faint)}
 
-  .gauge-wrap{display:grid; place-items:center; padding:.5rem 0 1rem}
-  .gauge{width:min(300px,70vw); height:min(300px,70vw)}
-  .gauge text{font-weight:800; fill:var(--ink)}
-  .big-value{font-size:27px} .sub{font-size:12px; fill:var(--muted)}
-  .pill{margin:.75rem auto 0; display:inline-flex; align-items:center; gap:.6rem; padding:.4rem .7rem; background:#0b1220; border:1px solid #1f2937; border-radius:999px; color:var(--muted); font-size:.9rem}
-  .dot{width:10px; height:10px; border-radius:50%}
-  .legend{display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; margin-top:.5rem; color:var(--muted); font-size:.85rem}
+  /* ---------- Layout ---------- */
+  main{
+    width:min(1280px,95vw); margin:0 auto;
+    padding:clamp(1rem,2.5vw,1.8rem) 0 3rem;
+    display:flex; flex-direction:column; gap:clamp(1rem,2vw,1.4rem);
+  }
+  .kpis{display:grid; gap:1rem; grid-template-columns:repeat(2,1fr)}
+  @media(min-width:760px){ .kpis{grid-template-columns:repeat(4,1fr)} }
+  .grid{display:grid; gap:clamp(1rem,2vw,1.4rem); grid-template-columns:1fr}
+  @media(min-width:1000px){ .grid{grid-template-columns:360px 1fr; align-items:stretch} }
+
+  .card{
+    position:relative; background:var(--panel); border:1px solid var(--panel-brd);
+    border-radius:20px; padding:1.15rem 1.25rem; box-shadow:var(--shadow);
+    backdrop-filter:blur(10px);
+  }
+  .card h2{margin:0 0 1rem; font-size:.82rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+  .card .eyebrow{display:flex; align-items:center; justify-content:space-between; gap:.5rem .75rem; flex-wrap:wrap}
+
+  /* ---------- KPI cards ---------- */
+  .kpi{padding:1rem 1.1rem; overflow:hidden}
+  .kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--c,var(--faint)); transition:background .4s}
+  .kpi .lbl{font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:.45rem}
+  .kpi .lbl .ic{width:18px; height:18px; opacity:.8; flex:none}
+  .kpi .val{font-size:1.95rem; font-weight:750; margin-top:.45rem; line-height:1; font-variant-numeric:tabular-nums}
+  .kpi .val span{font-size:.95rem; color:var(--muted); font-weight:600; margin-left:.15rem}
+  .kpi .meta{font-size:.74rem; color:var(--faint); margin-top:.5rem; min-height:1em}
+
+  /* ---------- Gauge ---------- */
+  .gauge-card{display:flex; flex-direction:column}
+  .gauge-wrap{display:grid; place-items:center; flex:1; padding:.25rem 0 .5rem}
+  .gauge{width:min(260px,72vw); height:min(260px,72vw)}
+  .gauge .gv{font-size:38px; font-weight:780; fill:var(--ink); font-variant-numeric:tabular-nums}
+  .gauge .unit{font-size:15px; font-weight:600; fill:var(--muted)}
+  .gauge .sub{font-size:11.5px; fill:var(--faint); letter-spacing:.05em}
+  #ww-arc{transition:stroke-dasharray .9s cubic-bezier(.22,1,.36,1), stroke .5s}
+  .state-pill{margin:.4rem auto 0; display:inline-flex; align-items:center; gap:.55rem; padding:.42rem .9rem;
+    border:1px solid var(--panel-brd); border-radius:999px; color:var(--muted); font-size:.86rem; font-weight:600}
+  .state-pill .dot{width:9px; height:9px; border-radius:50%; background:var(--faint); transition:background .4s}
+  .legend{display:flex; gap:.35rem .9rem; flex-wrap:wrap; justify-content:center; margin-top:1rem; color:var(--faint); font-size:.74rem}
   .legend span{display:inline-flex; align-items:center; gap:.4rem}
+  .legend .dot{width:8px; height:8px; border-radius:50%}
 
-  .diagram.card{padding:1rem 1rem 1.25rem}
-  .diagram svg{width:100%; height:auto}
+  /* ---------- Schema ---------- */
+  .schema-card{padding:1.1rem 1.1rem .8rem; display:flex; flex-direction:column}
+  .sys-state{display:inline-flex; align-items:center; gap:.5rem; font-size:.8rem; font-weight:600; color:var(--ink);
+    padding:.35rem .7rem; border-radius:999px; background:rgba(96,165,250,.12); border:1px solid rgba(96,165,250,.28)}
+  .sys-state .dot{width:8px; height:8px; border-radius:50%; background:var(--accent)}
+  .schema{width:100%; height:auto; flex:1; margin-top:.4rem}
 
-  /* hintere Ebenen */
-  .tank{fill:#334155; stroke:#475569; stroke-width:2}
-  .box{fill:#1f2937; stroke:#374151; stroke-width:2}
-  .pipe{fill:#3a4a63}
-  .lead{stroke:#475569; stroke-width:2; fill:none}
+  .lbl-rect{fill:rgba(8,12,22,.82); stroke:rgba(148,163,184,.22); stroke-width:1}
+  .lbl-txt{font-size:13.5px; font-weight:650; fill:var(--ink); font-variant-numeric:tabular-nums}
+  .lbl-name{font-size:11px; font-weight:600; fill:var(--muted)}
+  .tank-shell{fill:none; stroke:rgba(148,163,184,.35); stroke-width:2.5}
+  .pipe-bg{stroke:#26354f; stroke-width:8; fill:none; stroke-linecap:round}
+  .flow{stroke-width:4.5; fill:none; stroke-linecap:round; stroke-dasharray:2 14; opacity:0}
+  .flow.on{opacity:1; animation:flow 1s linear infinite}
+  .flow.hot{stroke:var(--hot)} .flow.cool{stroke:var(--cool)}
+  [data-dyn]{transition:fill .5s ease}
 
-  /* vordere Ebenen (Wertboxen) */
-  .labelbox{fill:#0b1220e6; stroke:#475569; stroke-width:1.1; rx:6}
-  .label{font-size:16px; font-weight:800; fill:var(--ink); paint-order:stroke; stroke:#000000c0; stroke-width:3.5px}
+  footer{margin-top:.4rem; text-align:center; font-size:.78rem; color:var(--faint)}
+  footer b{color:var(--muted); font-weight:600}
 
-  @media (max-width:720px){ .label{font-size:15px; stroke-width:3px} }
-
-  .footer{margin-top:.25rem; font-size:.85rem; color:var(--muted); text-align:center}
-  [data-dyn]{transition:fill .25s ease,color .25s ease}
+  @keyframes flow{to{stroke-dashoffset:-16}}
+  @keyframes pulse{70%{box-shadow:0 0 0 7px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+  @keyframes breathe{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+  @keyframes rays{to{transform:rotate(360deg)}}
+  #rays{transform-origin:150px 110px; animation:rays 60s linear infinite}
+  @media(prefers-reduced-motion:reduce){#rays,.flow,.brand .mark::after{animation:none}}
 </style>
 </head>
 <body>
 
 <header>
-  <h1><span class="sun"></span>Solarthermie-Anlage</h1>
-  <div id="lastUpdate">Zuletzt aktualisiert: –</div>
+  <div class="brand">
+    <span class="mark"></span>
+    <span>Solarthermie<small>Anlagen-Monitor · UVR1611</small></span>
+  </div>
+  <div class="status">
+    <span class="conn" id="conn"><span class="led"></span><span id="connTxt">Verbinde …</span></span>
+    <span id="lastUpdate">–</span>
+  </div>
 </header>
 
 <main>
-  <!-- Warmwasser (nur Gauge) -->
-  <section class="card">
-    <h2>Warmwasser</h2>
-    <div class="gauge-wrap">
-      <svg class="gauge" viewBox="0 0 200 200" aria-labelledby="gaugeTitle">
-        <title id="gaugeTitle">Warmwasser Temperatur</title>
-        <defs>
-          <linearGradient id="gradTemp" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stop-color="var(--cool)"/><stop offset="50%" stop-color="var(--warm)"/><stop offset="100%" stop-color="var(--hot)"/>
-          </linearGradient>
-        </defs>
-        <circle cx="100" cy="100" r="78" stroke="var(--ring)" stroke-width="16" fill="none"/>
-        <circle id="ww-arc" cx="100" cy="100" r="78" stroke="url(#gradTemp)" stroke-width="16" fill="none" stroke-linecap="round" transform="rotate(-90 100 100)" stroke-dasharray="0 1000"/>
-        <text x="100" y="95" text-anchor="middle" class="big-value" id="Warmwasser_value">-- °C</text>
-        <text x="100" y="115" text-anchor="middle" class="sub">Ziel 60 °C</text>
-      </svg>
-      <div class="pill"><span class="dot" id="Warmwasser_dot" style="background:var(--ring)"></span><span id="Warmwasser_state">Warte auf Daten …</span></div>
-      <div class="legend">
-        <span><span class="dot" style="background:var(--cool)"></span><b>&lt; 20 °C</b> kühl</span>
-        <span><span class="dot" style="background:var(--ok)"></span><b>20–39 °C</b> normal</span>
-        <span><span class="dot" style="background:var(--warm)"></span><b>40–59 °C</b> warm</span>
-        <span><span class="dot" style="background:var(--hot)"></span><b>≥ 60 °C</b> heiß</span>
+  <!-- KPI Row -->
+  <section class="kpis">
+    <div class="card kpi" id="kpi-kollektor">
+      <div class="lbl">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+        Kollektor
       </div>
+      <div class="val" data-kpi="Sonnenkollektor">––<span>°C</span></div>
+      <div class="meta" data-meta="Sonnenkollektor"></div>
+    </div>
+    <div class="card kpi" id="kpi-ww">
+      <div class="lbl">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14a5 5 0 0010 0c0-2.5-2.5-5-5-9-2.5 4-5 6.5-5 9z"/></svg>
+        Warmwasser
+      </div>
+      <div class="val" data-kpi="Warmwasser">––<span>°C</span></div>
+      <div class="meta" data-meta="Warmwasser"></div>
+    </div>
+    <div class="card kpi" id="kpi-puffer">
+      <div class="lbl">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="3"/><path d="M6 9h12M6 15h12"/></svg>
+        Puffer Ø
+      </div>
+      <div class="val" data-kpi="PufferAvg">––<span>°C</span></div>
+      <div class="meta" data-meta="PufferAvg"></div>
+    </div>
+    <div class="card kpi" id="kpi-kessel">
+      <div class="lbl">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c2 3-1 4-1 6a3 3 0 006 0c0-3-2-4-1-6"/><path d="M5 21h14M7 21v-6a5 5 0 0110 0v6"/></svg>
+        Holzkessel
+      </div>
+      <div class="val" data-kpi="Holzkessel">––<span>°C</span></div>
+      <div class="meta" data-meta="Holzkessel"></div>
     </div>
   </section>
 
-  <!-- Systemdiagramm -->
-  <section class="diagram card" aria-label="Systemübersicht">
-    <svg viewBox="0 0 1060 520" role="img">
-      <defs>
-        <radialGradient id="sunGrad" cx="35%" cy="35%">
-          <stop offset="0%" stop-color="#fde047"/><stop offset="100%" stop-color="#f59e0b"/>
-        </radialGradient>
-      </defs>
+  <section class="grid">
+    <!-- Gauge -->
+    <div class="card gauge-card">
+      <div class="eyebrow"><h2>Warmwasser</h2></div>
+      <div class="gauge-wrap">
+        <svg class="gauge" viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="gradTemp" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="var(--cool)"/><stop offset="48%" stop-color="var(--warm)"/><stop offset="100%" stop-color="var(--hot)"/>
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" stroke="var(--ring)" stroke-width="14" fill="none"
+                  stroke-dasharray="377 502.6" transform="rotate(135 100 100)"/>
+          <circle id="ww-arc" cx="100" cy="100" r="80" stroke="url(#gradTemp)" stroke-width="14" fill="none"
+                  stroke-linecap="round" stroke-dasharray="0 502.6" transform="rotate(135 100 100)"/>
+          <text x="100" y="96" text-anchor="middle" class="gv"><tspan id="ww-num">––</tspan><tspan class="unit" dx="2">°C</tspan></text>
+          <text x="100" y="120" text-anchor="middle" class="sub">ZIEL 60 °C</text>
+        </svg>
+        <div class="state-pill"><span class="dot" id="ww-dot"></span><span id="ww-state">Warte auf Daten …</span></div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--cool)"></span>&lt; 20° kühl</span>
+          <span><span class="dot" style="background:var(--ok)"></span>20–39° normal</span>
+          <span><span class="dot" style="background:var(--warm)"></span>40–59° warm</span>
+          <span><span class="dot" style="background:var(--hot)"></span>≥ 60° heiß</span>
+        </div>
+      </div>
+    </div>
 
-      <!-- ===== BACK LAYER ===== -->
-      <!-- Sonne/ Rohr (etwas nach rechts) -->
-      <circle id="sun" cx="150" cy="100" r="46" fill="url(#sunGrad)" />
-      <rect x="200" y="94" width="220" height="12" class="pipe"/><!-- endet bei x=420 -->
+    <!-- Schema -->
+    <div class="card schema-card">
+      <div class="eyebrow">
+        <h2>Anlagenübersicht</h2>
+        <span class="sys-state" id="sysState"><span class="dot"></span><span id="sysStateTxt">–</span></span>
+      </div>
+      <svg class="schema" viewBox="0 0 1060 520" role="img" aria-label="Anlagenschema">
+        <defs>
+          <radialGradient id="sunGrad" cx="38%" cy="34%">
+            <stop offset="0%" stop-color="var(--sun1)"/><stop offset="100%" stop-color="var(--sun2)"/>
+          </radialGradient>
+          <linearGradient id="tankGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  id="ts0" stop-color="#fb5d5d"/>
+            <stop offset="34%" id="ts1" stop-color="#fbbf24"/>
+            <stop offset="68%" id="ts2" stop-color="#34d399"/>
+            <stop offset="100%" id="ts3" stop-color="#38bdf8"/>
+          </linearGradient>
+          <clipPath id="tankClip"><rect x="432" y="80" width="116" height="300" rx="22"/></clipPath>
+          <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6"/></filter>
+        </defs>
 
-      <!-- Pufferspeicher -->
-      <rect x="420" y="70" width="120" height="280" rx="14" class="tank"/>
-      <line x1="430" y1="120" x2="530" y2="120" stroke="#4b5d7a" stroke-width="1"/>
-      <line x1="430" y1="180" x2="530" y2="180" stroke="#4b5d7a" stroke-width="1"/>
-      <line x1="430" y1="240" x2="530" y2="240" stroke="#4b5d7a" stroke-width="1"/>
+        <!-- ===== Sun / collector ===== -->
+        <g id="rays" opacity=".85">
+          <g stroke="var(--sun2)" stroke-width="4" stroke-linecap="round" opacity=".75">
+            <line x1="150" y1="44" x2="150" y2="22"/><line x1="150" y1="176" x2="150" y2="198"/>
+            <line x1="84" y1="110" x2="62" y2="110"/><line x1="216" y1="110" x2="238" y2="110"/>
+            <line x1="103" y1="63" x2="88" y2="48"/><line x1="197" y1="157" x2="212" y2="172"/>
+            <line x1="197" y1="63" x2="212" y2="48"/><line x1="103" y1="157" x2="88" y2="172"/>
+          </g>
+        </g>
+        <circle cx="150" cy="110" r="60" fill="url(#sunGrad)" opacity=".25" filter="url(#soft)"/>
+        <circle id="sun" cx="150" cy="110" r="46" fill="url(#sunGrad)"/>
 
-      <!-- kurze Leader-Linien -->
-      <line x1="540" y1="110" x2="560" y2="110" class="lead"/>
-      <line x1="540" y1="180" x2="560" y2="180" class="lead"/>
-      <line x1="540" y1="240" x2="560" y2="240" class="lead"/>
-      <line x1="540" y1="300" x2="560" y2="300" class="lead"/>
+        <!-- ===== Pipes (collector -> tank) ===== -->
+        <path class="pipe-bg" d="M196 96 H392 a8 8 0 0 1 8 8 V150"/>
+        <path class="pipe-bg" d="M196 130 H360 a8 8 0 0 1 8 8 V250"/>
+        <path id="flow-supply" class="flow hot" d="M196 96 H392 a8 8 0 0 1 8 8 V150"/>
+        <path id="flow-return" class="flow cool" d="M400 250 V138 a8 8 0 0 0 -8 -8 H196"/>
 
-      <!-- Kessel -->
-      <rect x="780" y="310" width="240" height="160" rx="12" class="box"/>
-      <rect x="540" y="300" width="220" height="10" class="pipe"/>
-      <rect x="760" y="300" width="10"  height="50" class="pipe"/>
-      <rect x="770" y="340" width="20"  height="10" class="pipe"/>
+        <!-- ===== Buffer tank ===== -->
+        <rect x="432" y="80" width="116" height="300" rx="22" fill="#0c1322"/>
+        <rect id="tankFill" x="432" y="80" width="116" height="300" rx="22"
+              fill="url(#tankGrad)" clip-path="url(#tankClip)" opacity=".88"/>
+        <g clip-path="url(#tankClip)" stroke="rgba(255,255,255,.10)" stroke-width="1">
+          <line x1="432" y1="155" x2="548" y2="155"/><line x1="432" y1="230" x2="548" y2="230"/><line x1="432" y1="305" x2="548" y2="305"/>
+        </g>
+        <rect x="432" y="80" width="116" height="300" rx="22" class="tank-shell"/>
+        <text x="490" y="402" text-anchor="middle" class="lbl-name">PUFFERSPEICHER</text>
 
-      <!-- ===== FRONT LAYER: Wertboxen ===== -->
-      <!-- Kollektor: zentriert, nur "Sonnenkollektor: … °C" (kein "Temperatur") -->
-      <g id="g-Sonnenkollektor">
-        <rect class="labelbox" data-for="Sonnenkollektor"
-              x="-9999" y="-9999" width="10" height="28"></rect>
-        <text class="label" id="Sonnenkollektor"
-              text-anchor="middle" data-dyn>
-          Sonnenkollektor: -- °C
-        </text>
-      </g>
+        <!-- ===== Pipes (tank -> boiler) ===== -->
+        <path class="pipe-bg" d="M548 320 H660 a8 8 0 0 1 8 8 V392"/>
+        <path class="pipe-bg" d="M548 348 H700"/>
+        <path id="flow-boiler" class="flow hot" d="M700 392 V328 a8 8 0 0 0 -8 -8 H548"/>
 
-      <!-- Puffer-Werte -->
-      <g id="g-Po1">
-        <rect class="labelbox" data-for="Puffer oben 1" x="560" y="96" height="28" width="240"></rect>
-        <text  class="label"    id="Puffer oben 1" x="572" y="115" data-dyn>Puffer oben 1: -- °C</text>
-      </g>
-      <g id="g-Po2">
-        <rect class="labelbox" data-for="Puffer oben 2" x="560" y="166" height="28" width="240"></rect>
-        <text  class="label"    id="Puffer oben 2" x="572" y="185" data-dyn>Puffer oben 2: -- °C</text>
-      </g>
-      <g id="g-Pm">
-        <rect class="labelbox" data-for="Puffer mitte" x="560" y="226" height="28" width="240"></rect>
-        <text  class="label"    id="Puffer mitte" x="572" y="245" data-dyn>Puffer mitte: -- °C</text>
-      </g>
-      <g id="g-Pu2">
-        <rect class="labelbox" data-for="Puffer unten 2" x="560" y="286" height="28" width="240"></rect>
-        <text  class="label"    id="Puffer unten 2" x="572" y="305" data-dyn>Puffer unten 2: -- °C</text>
-      </g>
+        <!-- ===== Boiler ===== -->
+        <rect x="668" y="392" width="372" height="118" rx="16" fill="#0e1626" stroke="rgba(148,163,184,.22)" stroke-width="2"/>
+        <text x="690" y="416" class="lbl-name">HOLZKESSEL</text>
 
-      <!-- Kesselwerte -->
-      <g id="g-Kessel">
-        <rect class="labelbox" x="792" y="320" width="220" height="128"></rect>
-        <text class="label" id="Kessel Vorlauf"  x="804" y="350" data-dyn>Vorlauf: -- °C</text>
-        <text class="label" id="Kessel Rücklauf" x="804" y="380" data-dyn>Rücklauf: -- °C</text>
-        <text class="label" id="Holzkessel"      x="804" y="410" data-dyn>Holzkessel: -- °C</text>
-      </g>
-    </svg>
+        <!-- ===== Value labels ===== -->
+        <!-- collector -->
+        <g data-grp><rect class="lbl-rect" x="78" y="186" width="144" height="34" rx="9"/>
+          <text class="lbl-name" x="92" y="200">Kollektor</text>
+          <text class="lbl-txt"  x="92" y="214" id="Sonnenkollektor" data-dyn>–– °C</text></g>
+
+        <!-- buffer values -->
+        <g data-grp><rect class="lbl-rect" x="576" y="100" width="178" height="34" rx="9"/>
+          <text class="lbl-name" x="590" y="114">Puffer oben 1</text>
+          <text class="lbl-txt" x="724" y="121" text-anchor="end" id="Puffer oben 1" data-dyn>–– °C</text></g>
+        <g data-grp><rect class="lbl-rect" x="576" y="170" width="178" height="34" rx="9"/>
+          <text class="lbl-name" x="590" y="184">Puffer oben 2</text>
+          <text class="lbl-txt" x="724" y="191" text-anchor="end" id="Puffer oben 2" data-dyn>–– °C</text></g>
+        <g data-grp><rect class="lbl-rect" x="576" y="240" width="178" height="34" rx="9"/>
+          <text class="lbl-name" x="590" y="254">Puffer mitte</text>
+          <text class="lbl-txt" x="724" y="261" text-anchor="end" id="Puffer mitte" data-dyn>–– °C</text></g>
+        <g data-grp><rect class="lbl-rect" x="576" y="310" width="178" height="34" rx="9"/>
+          <text class="lbl-name" x="590" y="324">Puffer unten 2</text>
+          <text class="lbl-txt" x="724" y="331" text-anchor="end" id="Puffer unten 2" data-dyn>–– °C</text></g>
+
+        <!-- boiler values -->
+        <g data-grp><rect class="lbl-rect" x="690" y="428" width="160" height="30" rx="8"/>
+          <text class="lbl-name" x="702" y="448">Vorlauf</text>
+          <text class="lbl-txt" x="838" y="448" text-anchor="end" id="Kessel Vorlauf" data-dyn>–– °C</text></g>
+        <g data-grp><rect class="lbl-rect" x="690" y="466" width="160" height="30" rx="8"/>
+          <text class="lbl-name" x="702" y="486">Rücklauf</text>
+          <text class="lbl-txt" x="838" y="486" text-anchor="end" id="Kessel Rücklauf" data-dyn>–– °C</text></g>
+        <g data-grp><rect class="lbl-rect" x="864" y="428" width="160" height="30" rx="8"/>
+          <text class="lbl-name" x="876" y="448">Holzkessel</text>
+          <text class="lbl-txt" x="1012" y="448" text-anchor="end" id="Holzkessel" data-dyn>–– °C</text></g>
+      </svg>
+    </div>
   </section>
+
+  <footer>Automatische Aktualisierung alle <b>30 s</b> · Datenquelle <b>D-LOGG / UVR1611</b> im lokalen Netz</footer>
 </main>
 
-<div class="footer">Aktualisierung alle 30 s • Läuft im lokalen Netz</div>
-
 <script>
-  // Farben je Temperatur
-  function tempColor(v){
-    if (v == null || isNaN(v)) return "var(--muted)";
-    if (v >= 60) return "var(--hot)";
-    if (v >= 40) return "var(--warm)";
-    if (v >= 20) return "var(--ok)";
-    return "var(--cool)";
-  }
-  // deutsche Formatierung (z.B. 100,3)
-  function fmt(v){
-    return Number(v).toLocaleString('de-DE', {minimumFractionDigits:1, maximumFractionDigits:1});
+  const REFRESH_MS = 30_000;
+
+  const tempColor = v => (v==null||isNaN(v)) ? "var(--faint)"
+      : v>=60 ? "var(--hot)" : v>=40 ? "var(--warm)" : v>=20 ? "var(--ok)" : "var(--cool)";
+  const fmt = v => Number(v).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const pick = (o,...ks)=>{ for(const k of ks) if(o&&o[k]!=null&&!isNaN(o[k])) return o[k]; return null; };
+
+  // smooth count-up; `set` receives formatted strings, `store` holds last value
+  function animateNum(store, key, set, to){
+    const from = parseFloat(store[key] ?? "");
+    if(to==null||isNaN(to)){ store[key]=""; set("––"); return; }
+    store[key] = to;
+    const start = isNaN(from) ? to : from;
+    if(start===to){ set(fmt(to)); return; }
+    const t0 = performance.now(), dur = 800;
+    const step = now => {
+      const p = Math.min(1,(now-t0)/dur);
+      const e = 1-Math.pow(1-p,3);
+      set(fmt(start+(to-start)*e));
+      if(p<1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
-  // Label-Box an Textbreite anpassen
-  function autosizeBox(textId){
-    const t = document.getElementById(textId);
-    const r = document.querySelector(`rect[data-for="${textId}"]`);
-    if (!t || !r) return;
-    const bb = t.getBBox();
-    const padX = 10, padY = 6;
-    r.setAttribute('x', bb.x - padX);
-    r.setAttribute('y', bb.y - (padY - 2));
-    r.setAttribute('width',  bb.width  + padX*2);
-    r.setAttribute('height', bb.height + padY*2);
+  // KPI cards
+  function setKpi(name, val, meta){
+    const v = document.querySelector(`[data-kpi="${name}"]`);
+    const m = document.querySelector(`[data-meta="${name}"]`);
+    const card = v?.closest('.kpi');
+    if(card) card.style.setProperty('--c', tempColor(val));
+    if(v){
+      const num = v.firstChild;
+      animateNum(v.dataset, "cur", t=>{ num.textContent=t; }, val);
+    }
+    if(m) m.textContent = meta ?? "";
   }
 
-  // Kollektor-Label exakt unter der Sonne
-  function placeCollectorLabel(){
-    const sun  = document.getElementById('sun');
-    const text = document.getElementById('Sonnenkollektor');
-    if(!sun || !text) return;
-    const cx = parseFloat(sun.getAttribute('cx'));
-    const cy = parseFloat(sun.getAttribute('cy'));
-    const r  = parseFloat(sun.getAttribute('r'));
-    text.setAttribute('x', cx);
-    text.setAttribute('y', cy + r + 24);
-    autosizeBox('Sonnenkollektor');
+  // SVG schema label
+  function paintLabel(id, val){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = (val==null||isNaN(val)) ? "–– °C" : `${fmt(val)} °C`;
+    el.style.fill = tempColor(val);
   }
 
   // Gauge
-  function updateGauge(value){
-    const arc = document.getElementById("ww-arc");
-    const max = 80;
-    const v = Math.max(0, Math.min(value ?? 0, max));
-    const circumference = 2 * Math.PI * 78;
-    const filled = (v / max) * circumference;
-    arc.setAttribute("stroke-dasharray", `${filled} ${circumference - filled}`);
-    document.getElementById("Warmwasser_value").textContent =
-      (value==null || isNaN(value)) ? "-- °C" : `${fmt(value)} °C`;
-    const c = tempColor(value);
-    document.getElementById("Warmwasser_dot").style.background = c;
-    document.getElementById("Warmwasser_state").textContent =
-      (value==null || isNaN(value)) ? "Warte auf Daten …" :
-      (value>=60 ? "heiß" : value>=40 ? "warm" : value>=20 ? "ok" : "kühl");
+  const ARC = 2*Math.PI*80, GAUGE_MAX=80, GAUGE_SWEEP=ARC*0.75; // 270° arc
+  function updateGauge(val){
+    const arc=document.getElementById("ww-arc");
+    const v=Math.max(0,Math.min(val??0,GAUGE_MAX));
+    const filled=(v/GAUGE_MAX)*GAUGE_SWEEP;
+    arc.setAttribute("stroke-dasharray",`${filled} ${ARC-filled}`);
+    const num=document.getElementById("ww-num");
+    animateNum(num.dataset, "cur", t=>{ num.textContent=t; }, val);
+    document.getElementById("ww-dot").style.background=tempColor(val);
+    document.getElementById("ww-state").textContent =
+      (val==null||isNaN(val)) ? "Warte auf Daten …"
+      : v>=60?"heiß – bereit":v>=40?"warm":v>=20?"normal":"kühl";
   }
 
-  // helpers
-  const pick = (obj, ...names) => {
-    for(const n of names){ if (n in obj && obj[n] != null) return obj[n]; }
-    return null;
-  };
+  // Buffer tank: map 4 sensors to gradient stops + fill level
+  function updateTank(po1,po2,pm,pu){
+    const vals=[po1,po2,pm,pu].filter(x=>x!=null&&!isNaN(x));
+    const grad = v => { // map temp -> color hex
+      if(v==null||isNaN(v)) return "#26354f";
+      if(v>=60) return "#fb5d5d"; if(v>=40) return "#fbbf24";
+      if(v>=20) return "#34d399"; return "#38bdf8";
+    };
+    document.getElementById("ts0").setAttribute("stop-color",grad(po1));
+    document.getElementById("ts1").setAttribute("stop-color",grad(po2));
+    document.getElementById("ts2").setAttribute("stop-color",grad(pm));
+    document.getElementById("ts3").setAttribute("stop-color",grad(pu));
+    const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    return avg;
+  }
 
-  function paintLabel(id, val){
-    const el = document.getElementById(id);
-    if (!el) return;
-    const label = id;
-    if (val==null || isNaN(val)){
-      el.textContent = `${label}: -- °C`;
-      el.style.fill = "var(--muted)";
-      el.style.color = "var(--muted)";
-      autosizeBox(id);
-      if (id === "Sonnenkollektor") placeCollectorLabel();
-      return;
-    }
-    el.textContent = `${label}: ${fmt(val)} °C`;
-    const c = tempColor(val);
-    el.style.fill = c; el.style.color = c;
-    autosizeBox(id);
-    if (id === "Sonnenkollektor") placeCollectorLabel();
+  // Flow animation + system state
+  function updateFlows(coll, ptop, vorlauf, ruecklauf, kessel){
+    const solarOn = coll!=null && ptop!=null && coll > ptop+5 && coll>30;
+    const boilerOn = (kessel!=null && kessel>45) || (vorlauf!=null && ruecklauf!=null && vorlauf>ruecklauf+4);
+    document.getElementById("flow-supply").classList.toggle("on",solarOn);
+    document.getElementById("flow-return").classList.toggle("on",solarOn);
+    document.getElementById("flow-boiler").classList.toggle("on",boilerOn);
+
+    let txt="Anlage im Standby", col="var(--faint)";
+    if(solarOn && boilerOn){ txt="Solar + Holzkessel laden"; col="var(--warm)"; }
+    else if(solarOn){ txt="Solar lädt Puffer"; col="var(--sun2)"; }
+    else if(boilerOn){ txt="Holzkessel aktiv"; col="var(--hot)"; }
+    const st=document.getElementById("sysState");
+    document.getElementById("sysStateTxt").textContent=txt;
+    st.querySelector('.dot').style.background=col;
+    st.style.borderColor=col; st.style.background=`color-mix(in srgb, ${col} 14%, transparent)`;
+  }
+
+  function setConn(live){
+    const c=document.getElementById("conn");
+    c.classList.toggle("live",live); c.classList.toggle("dead",!live);
+    document.getElementById("connTxt").textContent = live ? "Verbunden" : "Offline";
   }
 
   async function updateData(){
     try{
-      const res = await fetch('/api/current', { cache: 'no-store' });
+      const res = await fetch('/api/current',{cache:'no-store'});
       const data = await res.json();
-      if (!data || data.ok !== true || !data.values) throw new Error("Ungültige API-Antwort");
-      const vals = data.values;
+      if(!data || data.ok!==true || !data.values) throw new Error("Ungültige API-Antwort");
+      const v = data.values;
+      setConn(true);
 
-      // Warmwasser-Gauge
-      updateGauge(vals["Warmwasser"]);
+      const coll = pick(v,"Sonnenkollektor","Temperatur Sonnenkollektor","Temperature Sonnenkollektor");
+      const ww   = v["Warmwasser"];
+      const po1=v["Puffer oben 1"], po2=v["Puffer oben 2"], pm=v["Puffer mitte"], pu=v["Puffer unten 2"];
+      const vor=v["Kessel Vorlauf"], ruck=v["Kessel Rücklauf"], holz=v["Holzkessel"];
 
-      // Sonnenkollektor: akzeptiere mehrere Key-Varianten
-      const sunVal = pick(vals, "Sonnenkollektor", "Temperatur Sonnenkollektor", "Temperature Sonnenkollektor");
-      paintLabel("Sonnenkollektor", sunVal);
+      // KPIs
+      setKpi("Sonnenkollektor", coll, coll!=null ? (coll>(po1??0)+5?"lädt aktiv":"keine Ladung") : "");
+      setKpi("Warmwasser", ww, ww!=null ? (ww>=60?"Zieltemp. erreicht":`${fmt(Math.max(0,60-ww))}° bis Ziel`) : "");
+      setKpi("Holzkessel", holz, holz!=null ? (holz>45?"in Betrieb":"aus") : "");
 
-      // Restliche Labels
-      ["Puffer oben 1","Puffer oben 2","Puffer mitte","Puffer unten 2",
-       "Kessel Vorlauf","Kessel Rücklauf","Holzkessel"]
-       .forEach(id => paintLabel(id, vals[id]));
+      // gauge + schema
+      updateGauge(ww);
+      paintLabel("Sonnenkollektor",coll);
+      [["Puffer oben 1",po1],["Puffer oben 2",po2],["Puffer mitte",pm],["Puffer unten 2",pu],
+       ["Kessel Vorlauf",vor],["Kessel Rücklauf",ruck],["Holzkessel",holz]].forEach(([id,val])=>paintLabel(id,val));
 
-      // Zeitstempel
-      const ts = new Date();
+      const avg=updateTank(po1,po2,pm,pu);
+      setKpi("PufferAvg", avg, avg!=null ? "über 4 Fühler" : "");
+      updateFlows(coll, po1, vor, ruck, holz);
+
+      const ts=new Date();
       document.getElementById("lastUpdate").textContent =
-        `Zuletzt aktualisiert: ${ts.toLocaleDateString('de-DE')} ${ts.toLocaleTimeString('de-DE')}`;
-
-      placeCollectorLabel();
+        `aktualisiert ${ts.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
     }catch(err){
       console.error(err);
-      document.getElementById("lastUpdate").textContent = "Fehler beim Abrufen – retry …";
+      setConn(false);
+      document.getElementById("lastUpdate").textContent = "Abruf fehlgeschlagen – neuer Versuch …";
     }
   }
 
   updateData();
-  placeCollectorLabel();
-  setInterval(updateData, 30_000);
-  window.addEventListener('resize', placeCollectorLabel);
+  setInterval(updateData, REFRESH_MS);
 </script>
 </body>
 </html>
